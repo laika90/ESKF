@@ -48,11 +48,9 @@ Eigen::Vector4d quatMultiply(Eigen::Vector4d & p, Eigen::Vector4d & q)
 //     std::cout << q << std::endl;
 // }
 
+double 
+
 int main()
 {
-    Eigen::Vector<double, 5> v(3,4,5,6,7);
-    Eigen::Vector4d c;
-    c << 1, v.segment(2,3);
-    std::cout << c << std::endl;
-    int a = 1;
+
 }
