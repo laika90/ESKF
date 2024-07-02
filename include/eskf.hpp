@@ -33,4 +33,4 @@ namespace eskf
                               Eigen::Matrix<double, 18, 18> & P);
 }
 
-#endif // EFKF_HPP
+#endif // ESKF_HPP

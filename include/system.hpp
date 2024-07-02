@@ -38,7 +38,7 @@ namespace system
     const double omega_r = 0.1;  // rotation   (the object's rotation   is in simple harmonic motion with respect to each axis)
 
     void initialize();
-    void updateTrueState(Eigen::Vector<double, 18> & xt, const double t)
+    void updateTrueState(Eigen::Vector<double, 18> & xt, const double t);
 
 }
 
