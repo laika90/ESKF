@@ -9,7 +9,7 @@ int main()
 
     while (true)
     {
-        system_user::updateTrueState(system_user::xt, t);
+        system_user::updateTrueState(t);
         std::cout << "####################" << std::endl;
         std::cout << system_user::xt << std::endl;
         t += system_user::dt_high;

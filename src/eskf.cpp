@@ -18,6 +18,8 @@ void eskf::updateErrorState(Eigen::Vector<double, 18>     & x,
     K = P * H.transpose() * (H*P*H.transpose() + V);
     dx = K * (y - hx_hat);
     P = (I - K*H) * P;
+
+    
 }
 
 void eskf::updateCovarianceMatrix(Eigen::Matrix<double, 18, 18> & P)

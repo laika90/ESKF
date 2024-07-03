@@ -15,18 +15,32 @@ namespace system_user
 
     std::random_device rd_for_aw;  
     std::random_device rd_for_ww;  
+    std::random_device rd_for_an; 
+    std::random_device rd_for_wn; 
+    std::random_device rd_for_pn;
     std::mt19937 gen_for_aw(rd_for_aw());
     std::mt19937 gen_for_ww(rd_for_ww());
+    std::mt19937 gen_for_an(rd_for_an());
+    std::mt19937 gen_for_wn(rd_for_wn());
+    std::mt19937 gen_for_pn(rd_for_pn());
     std::normal_distribution<> dist_aw(0, v_aw);
     std::normal_distribution<> dist_ww(0, v_ww);
+    std::normal_distribution<> dist_an(0, v_an);
+    std::normal_distribution<> dist_wn(0, v_wn);
+    std::normal_distribution<> dist_pn(0, v_pn);
 
     //                            p        v        q        ab       ωb       g
     Eigen::Vector<double, 18> x  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, g);
     Eigen::Vector<double, 18> xt (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, g);
     Eigen::Vector<double, 18> dx (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+    //                                         a        omega
+    Eigen::Vector<double, 6> other_true_state (0, 0, 0, 0, 0, 0);
+
+    Eigen::Matrix3d Rt = Eigen::Matrix3d::Identity();
 }
 
-void system_user::updateTrueState(Eigen::Vector<double, 18> & xt, const double t)
+void system_user::updateTrueState(const double t)
 {
     const double p_x =   std::sin(  omega_p*t);
     const double p_y = 2*std::sin(2*omega_p*t);
@@ -56,10 +70,40 @@ void system_user::updateTrueState(Eigen::Vector<double, 18> & xt, const double t
     const double wby_new = xt[13] + dist_ww(gen_for_ww) * dt_high;
     const double wbz_new = xt[14] + dist_ww(gen_for_ww) * dt_high;
 
+    const double ax = (v_x - xt[3]) / dt_high;
+    const double ay = (v_y - xt[4]) / dt_high;
+    const double az = (v_z - xt[5]) / dt_high;
+
     xt << p_x, p_y, p_z, 
           v_x, v_y, v_z,
           qt_new[1], qt_new[2], qt_new[3],
           abx_new, aby_new, abz_new,
           wbx_new, wby_new, wbz_new,
           xt[15], xt[16], xt[17];
+    
+    other_true_state << ax, ay, az, w_x, w_y, w_z;
+
+    updateRotationMatrix();
+}
+
+void updateRotationMatrix(Eigen::Vector4d & quat)
+{
+    // alias
+    const double & qw = quat[0];
+    const double & qx = quat[1];
+    const double & qy = quat[2];
+    const double & qz = quat[3];
+
+    Rt << qw*qw + qx*qx - qy*qy - qz*qz, ;
+}
+
+Eigen::Vector<double, 9> system_user::observe()
+{
+    // position  p_pbserved  = p_true + noise
+    const double px_observed = xt[0]  + dist_pn(gen_for_pn);
+    const double py_observed = xt[1]  + dist_pn(gen_for_pn);
+    const double pz_observed = xt[2]  + dist_pn(gen_for_pn);
+
+    // acceleration
+    const double    ax_obserbed = other_true_state[0] ;
 }
