@@ -83,10 +83,10 @@ void system_user::updateTrueState(const double t)
     
     other_true_state << ax, ay, az, w_x, w_y, w_z;
 
-    updateRotationMatrix();
+    updateRotationMatrix(qt_new);
 }
 
-void updateRotationMatrix(Eigen::Vector4d & quat)
+void system_user::updateRotationMatrix(Eigen::Vector4d & quat)
 {
     // alias
     const double & qw = quat[0];
@@ -94,16 +94,55 @@ void updateRotationMatrix(Eigen::Vector4d & quat)
     const double & qy = quat[2];
     const double & qz = quat[3];
 
-    Rt << qw*qw + qx*qx - qy*qy - qz*qz, ;
+    Rt << qw*qw + qx*qx - qy*qy - qz*qz, 2*(qx*qy - qw*qz),             2*(qx*qz + qw*qy),
+          2*(qx*qy + qz*qw),             qw*qw - qx*qx + qy*qy - qz*qz, 2*(qy*qz - qx*qw),
+          2*(qx*qz - qw*qy),             2*(qy*qz + qx*qw),             qw*qw - qx*qx - qy*qy + qz*qz;
+}
+
+Eigen::Vector<double, 9> system_user::observeWithoutNoise(const Eigen::Vector<double, 18> & state)
+{
+    // this function can be used in both true state and nominal state
+
+    // position 
+    const Eigen::Vector3d pm_without_noise (xt[0], xt[1], xt[2]);
+
+    // acceleration alias
+    const Eigen::Vector3d & at  = other_true_state.segment(0, 3);
+    const Eigen::Vector3d & gt  = xt.segment(15, 3);
+    const Eigen::Vector3d & abt = xt.segment(9, 3);
+
+    // acceleration 
+    Eigen::Vector3d am_without_noise;
+    am_without_noise << Rt.transpose() * (at - gt) + abt;
+
+    // angular velocity
+    const Eigen::Vector3d wm_without_noise (other_true_state[3] - xt[12], other_true_state[4] - xt[13], other_true_state[5] - xt[14]);
+
+    Eigen::Vector<double, 9> y_without_noise;
+    y_without_noise << pm_without_noise, am_without_noise, wm_without_noise;
+
+    return y_without_noise;
 }
 
 Eigen::Vector<double, 9> system_user::observe()
 {
-    // position  p_pbserved  = p_true + noise
-    const double px_observed = xt[0]  + dist_pn(gen_for_pn);
-    const double py_observed = xt[1]  + dist_pn(gen_for_pn);
-    const double pz_observed = xt[2]  + dist_pn(gen_for_pn);
+    // observation without noise
+    const Eigen::Vector<double, 9> y_without_noise = observeWithoutNoise(xt);
 
-    // acceleration
-    const double    ax_obserbed = other_true_state[0] ;
+    // noise 
+    const Eigen::Vector<double, 9> noise (dist_pn(gen_for_pn), dist_pn(gen_for_pn), dist_pn(gen_for_pn),
+                                          dist_an(gen_for_an), dist_an(gen_for_an), dist_an(gen_for_an),
+                                          dist_wn(gen_for_wn), dist_wn(gen_for_wn), dist_wn(gen_for_wn));
+    
+    // observation with noise
+    Eigen::Vector<double, 9> y;
+    y = y_without_noise + noise;
+    
+    return y;
+}
+
+Eigen::Vector<double, 9> system_user::hx_hat()
+{
+    // it functions as prediction if observeWithoutNoise is adapted to nominal state
+    return observeWithoutNoise(x);
 }

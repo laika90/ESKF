@@ -6,7 +6,7 @@
 
 namespace system_user
 {
-    #define OB_LEN 3
+    // #define OBSERVE_LENGTH 9
 
     // transition matrix for state
     extern Eigen::Matrix<double, 18, 18> A;
@@ -71,7 +71,10 @@ namespace system_user
     extern std::normal_distribution<> dist_pn;
 
     void updateTrueState(const double t);
+    void updateRotationMatrix(Eigen::Vector4d & quat);
+    Eigen::Vector<double, 9> observeWithoutNoise(const Eigen::Vector<double, 18> & state);
     Eigen::Vector<double, 9> observe();
+    Eigen::Vector<double, 9> hx_hat();
 }
 
 #endif // SYSTEM_HPP_

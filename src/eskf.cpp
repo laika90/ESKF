@@ -5,18 +5,17 @@
 void eskf::updateErrorState(Eigen::Vector<double, 18>     & x,
                             Eigen::Vector<double, 18>     & dx,
                             Eigen::Matrix<double, 18, 18> & P,
-                            Eigen::Matrix<double, OB_LEN, OB_LEN> & V)
+                            Eigen::Matrix<double, 9, 9> & V)
 {
-    Eigen::Matrix<double, 18, OB_LEN> K;
-    Eigen::Matrix<double, OB_LEN, 18> H;
-    Eigen::Vector<double, OB_LEN> y;
+    Eigen::Matrix<double, 18, 9> K;
+    Eigen::Matrix<double, 9, 18> H;
+    Eigen::Vector<double, 9> y;
     Eigen::Matrix<double, 18, 18> I = Eigen::MatrixXd::Identity(18, 18);
-    Eigen::Vector<double, OB_LEN> hx_hat;
 
-    y = observe(x);
+    y = system_user::observe(x);
     H = jacobH(x);
     K = P * H.transpose() * (H*P*H.transpose() + V);
-    dx = K * (y - hx_hat);
+    dx = K * (y - system_user::hx_hat()); 
     P = (I - K*H) * P;
 
     
@@ -27,9 +26,9 @@ void eskf::updateCovarianceMatrix(Eigen::Matrix<double, 18, 18> & P)
     P = s::Fx * P * s::Fx.transpose() + s::Qi;
 }
 
-Eigen::Matrix<double, OB_LEN, 18> eskf::jacobH(const Eigen::Vector<double, 18> & x)
+Eigen::Matrix<double, 9, 18> eskf::jacobH(const Eigen::Vector<double, 18> & x)
 {
-    Eigen::Matrix<double, OB_LEN, 19> hx;
+    Eigen::Matrix<double, 9, 19> hx;
     Eigen::Matrix<double, 19, 18> Xdx;
 
     hx  = jacobhx(x);
@@ -37,9 +36,9 @@ Eigen::Matrix<double, OB_LEN, 18> eskf::jacobH(const Eigen::Vector<double, 18> &
     return hx*Xdx;
 }
 
-Eigen::Matrix<double, OB_LEN, 19> eskf::jacobhx(const Eigen::Vector<double, 18> & x)
+Eigen::Matrix<double, 9, 19> eskf::jacobhx(const Eigen::Vector<double, 18> & x)
 {
-    Eigen::Matrix<double, OB_LEN, 19> hx;
+    Eigen::Matrix<double, 9, 19> hx;
     return hx;
 }
 
