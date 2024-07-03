@@ -2,44 +2,55 @@
 #define SYSTEM_HPP_
 
 #include <Eigen/Core>
+#include <random>
 
-namespace system
+namespace system_user
 {
     #define OB_LEN 3
 
     // transition matrix for state
-    Eigen::Matrix<double, 18, 18> A;
-    Eigen::Matrix<double, 18, 18> phai;
+    extern Eigen::Matrix<double, 18, 18> A;
+    extern Eigen::Matrix<double, 18, 18> phai;
 
     // transition matrix for error state
-    Eigen::Matrix<double, 18, 18> Fx;
+    extern Eigen::Matrix<double, 18, 18> Fx;
     
     // variance of impluse
-    Eigen::Matrix<double, 18, 18> Qi;
+    extern Eigen::Matrix<double, 18, 18> Qi;
     
     // state
-    Eigen::Vector<double, 18> x;
+    extern Eigen::Vector<double, 18> x;
 
     // true state (only for simulation)
-    Eigen::Vector<double, 18> xt;
+    extern Eigen::Vector<double, 18> xt;
 
     // error state
-    Eigen::Vector<double, 18> dx;
+    extern Eigen::Vector<double, 18> dx;
 
     // dt (high freq & low freq)
-    const double dt_high = 0.01;
-    const double dt_low  = 0.1;
+    extern const double dt_high;
+    extern const double dt_low;
 
     // gravity
-    const double g = 9.8;
+    extern const double g;
 
     // anglar velocity (only for simulation, using for updating true state)
-    const double omega_p = 0.1;  // trajectory (the object's trajectory is in simple harmonic motion with respect to each axis)
-    const double omega_r = 0.1;  // rotation   (the object's rotation   is in simple harmonic motion with respect to each axis)
+    extern const double omega_p;  // trajectory (the object's trajectory is in simple harmonic motion with respect to each axis)
+    extern const double omega_r;  // rotation   (the object's rotation   is in simple harmonic motion with respect to each axis)
 
-    void initialize();
+    // covariance of sensor noise (For simplicity, a single random number generator complements the three axes)
+    extern const double v_aw;
+    extern const double v_ww;
+
+    // distribution generator
+    extern std::random_device rd_for_aw;  // for sensor noise a_w
+    extern std::random_device rd_for_ww;  // for sensor noise omega_w
+    extern std::mt19937 gen_for_aw;
+    extern std::mt19937 gen_for_ww;
+    extern std::normal_distribution<> dist_aw;
+    extern std::normal_distribution<> dist_ww;
+
     void updateTrueState(Eigen::Vector<double, 18> & xt, const double t);
-
 }
 
 #endif // SYSTEM_HPP_
