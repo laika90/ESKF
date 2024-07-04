@@ -24,3 +24,15 @@ Eigen::Vector4d quatMultiply(const Eigen::Vector4d & p, const Eigen::Vector4d & 
     product = product / product.norm();
     return product;
 }
+
+Eigen::Vector4d thetaToq(const Eigen::Vector3d & theta)
+{
+    Eigen::Vector4d q;
+    Eigen::Vector3d u;
+    double theta_norm = theta.norm();
+    u = theta / theta_norm;
+
+    q << std::cos(theta_norm/2), u[0]*std::sin(theta_norm/2), u[1]*std::sin(theta_norm/2), u[2]*std::sin(theta_norm/2);
+
+    return q; 
+}

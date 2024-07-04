@@ -27,11 +27,11 @@ namespace system_user
     // error state
     extern Eigen::Vector<double, 18> dx;
 
-    // acceleration nominal
-    extern Eigen::Vector3d a_nominal;
-
-    // to hold other states needed to consider obsercvation (only for simulation)
+    // to hold other states needed to consider observation (only for simulation)
     extern Eigen::Vector<double, 6> other_true_state;
+
+    // to hold other states needed to update phai
+    extern Eigen::Vector<double, 6> other_nominal_state;
 
     // Rotation Matrix (quaternion to rotation matrix) true state
     extern Eigen::Matrix3d Rt;
@@ -68,26 +68,33 @@ namespace system_user
     // distribution generator
     extern std::random_device rd_for_aw;  // for sensor bias noise a_w
     extern std::random_device rd_for_ww;  // for sensor bias noise omega_w
+    extern std::random_device rd_for_pn;  // for sensor noise p_n (used for GPS)
+    extern std::random_device rd_for_vn;  // for sensor noise v_n (used for GPS)
     extern std::random_device rd_for_an;  // for sensor noise a_n
     extern std::random_device rd_for_wn;  // for sensor noise omega_n
-    extern std::random_device rd_for_pn;  // for sensor noise p_n (used for GPS)
+
     extern std::mt19937 gen_for_aw;
     extern std::mt19937 gen_for_ww;
+    extern std::mt19937 gen_for_pn;
+    extern std::mt19937 gen_for_vn;
     extern std::mt19937 gen_for_an;
     extern std::mt19937 gen_for_wn;
-    extern std::mt19937 gen_for_pn;
+
     extern std::normal_distribution<> dist_aw;
     extern std::normal_distribution<> dist_ww;
+    extern std::normal_distribution<> dist_pn;
+    extern std::normal_distribution<> dist_vn;
     extern std::normal_distribution<> dist_an;
     extern std::normal_distribution<> dist_wn;
-    extern std::normal_distribution<> dist_pn;
 
     void updateTrueState(const double t);
     void updateRotationMatrix(Eigen::Vector4d & quat, Eigen::Matrix3d & R); // used for both nominal and true state
-    Eigen::Vector<double, 9> observeWithoutNoise(const Eigen::Vector<double, 18> & state);
-    Eigen::Vector<double, 9> observe();
-    Eigen::Vector<double, 9> hx_hat();
+    Eigen::Vector<double, 6> observeWithoutNoise(const Eigen::Vector<double, 18> & state);
+    Eigen::Vector<double, 6> observe();
+    Eigen::Vector<double, 6> hx_hat();
     void updatePhai();
+    Eigen::Vector<double, 6> getSensorValueWithoutNoise();
+    Eigen::Vector<double, 6> getSensorValue();
 }
 
 #endif // SYSTEM_HPP_

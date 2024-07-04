@@ -12,38 +12,43 @@ namespace system_user
     const double omega_r = 0.1;
     const double v_aw = 0.01;
     const double v_ww = 0.01;
+    const double v_pn = 0.01;
+    const double v_vn = 0.01;
     const double v_an = 0.01;
     const double v_wn = 0.01;
-    const double v_pn = 0.01;
 
-    Eigen::Vector<double, 9> V_vec (v_pn, v_pn, v_pn, v_an, v_an, v_an, v_wn, v_wn, v_wn);
-    Eigen::Matrix<double, 9, 9> V =  V_vec.asDiagonal();
+    Eigen::Vector<double, 6> V_vec (v_pn, v_pn, v_pn, v_vn, v_vn, v_vn);
+    Eigen::Matrix<double, 6, 6> V =  V_vec.asDiagonal();
 
     Eigen::Vector3d a_nominal = Eigen::Vector3d::Zero();
 
     std::random_device rd_for_aw;  
     std::random_device rd_for_ww;  
-    std::random_device rd_for_an; 
-    std::random_device rd_for_wn; 
     std::random_device rd_for_pn;
+    std::random_device rd_for_vn;
+    std::random_device rd_for_an;
+    std::random_device rd_for_wn;
     std::mt19937 gen_for_aw(rd_for_aw());
     std::mt19937 gen_for_ww(rd_for_ww());
+    std::mt19937 gen_for_pn(rd_for_pn());
+    std::mt19937 gen_for_vn(rd_for_vn());
     std::mt19937 gen_for_an(rd_for_an());
     std::mt19937 gen_for_wn(rd_for_wn());
-    std::mt19937 gen_for_pn(rd_for_pn());
     std::normal_distribution<> dist_aw(0, v_aw);
     std::normal_distribution<> dist_ww(0, v_ww);
+    std::normal_distribution<> dist_pn(0, v_pn);
+    std::normal_distribution<> dist_vn(0, v_vn);
     std::normal_distribution<> dist_an(0, v_an);
     std::normal_distribution<> dist_wn(0, v_wn);
-    std::normal_distribution<> dist_pn(0, v_pn);
 
     //                            p        v        q        ab       ωb       g
     Eigen::Vector<double, 18> x  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, g);
     Eigen::Vector<double, 18> xt (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, g);
     Eigen::Vector<double, 18> dx (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
-    //                                         a        omega
-    Eigen::Vector<double, 6> other_true_state (0, 0, 0, 0, 0, 0);
+    //                                            a        omega
+    Eigen::Vector<double, 6> other_nominal_state (0, 0, 0, 0, 0, 0);
+    Eigen::Vector<double, 6> other_true_state    (0, 0, 0, 0, 0, 0);
 
     Eigen::Matrix3d Rt = Eigen::Matrix3d::Identity();
 
@@ -110,13 +115,82 @@ void system_user::updateRotationMatrix(Eigen::Vector4d & quat, Eigen::Matrix3d &
          2*(qx*qz - qw*qy),             2*(qy*qz + qx*qw),             qw*qw - qx*qx - qy*qy + qz*qz;
 }
 
-Eigen::Vector<double, 9> system_user::observeWithoutNoise(const Eigen::Vector<double, 18> & state)
+Eigen::Vector<double, 6> system_user::observeWithoutNoise(const Eigen::Vector<double, 18> & state)
 {
     // this function can be used in both true state and nominal state
 
     // position 
     const Eigen::Vector3d pm_without_noise (xt[0], xt[1], xt[2]);
 
+    // velocity
+    const Eigen::Vector3d vm_without_noise (xt[3], xt[4], xt[5]);
+
+    Eigen::Vector<double, 6> y_without_noise;
+    y_without_noise << pm_without_noise, vm_without_noise;
+
+    return y_without_noise;
+}
+
+Eigen::Vector<double, 6> system_user::observe()
+{
+    // observation without noise
+    const Eigen::Vector<double, 6> y_without_noise = observeWithoutNoise(xt);
+
+    // noise 
+    const Eigen::Vector<double, 6> noise (dist_pn(gen_for_pn), dist_pn(gen_for_pn), dist_pn(gen_for_pn),
+                                          dist_an(gen_for_an), dist_an(gen_for_an), dist_an(gen_for_an),
+                                          dist_wn(gen_for_wn), dist_wn(gen_for_wn), dist_wn(gen_for_wn));
+    
+    // observation with noise
+    Eigen::Vector<double, 6> y;
+    y = y_without_noise + noise;
+    
+    return y;
+}
+
+Eigen::Vector<double, 6> system_user::hx_hat()
+{
+    // it functions as prediction if observeWithoutNoise is adapted to nominal state
+    return observeWithoutNoise(x);
+}
+
+void system_user::updatePhai()
+{
+    // alias 
+    const double & ax = other_nominal_state[0];
+    const double & ay = other_nominal_state[1];
+    const double & az = other_nominal_state[2];
+    const Eigen::Vector3d & w_nominal = other_nominal_state.segment(3, 3);
+
+    Eigen::Matrix3d a_cross;
+    a_cross <<  0, -az,  ay,
+                az,  0, -ax,
+               -ay, ax,  0;
+    Eigen::Matrix3d Ra = Rn * a_cross;
+    Eigen::Matrix3d I = Eigen::Matrix3d::Identity();
+
+    Eigen::Matrix3d Rwdt;
+    Eigen::Vector4d wdt_quat = thetaToq(w_nominal*dt_high);
+
+    // only first time. invariant part.
+    if ((0, 3) != 0) 
+    {
+        system_user::Phai.block<3, 3>(0, 3)  = I * dt_high;
+        system_user::Phai.block<3, 3>(0, 15) = 0.5 * I * dt_high * dt_high;
+        system_user::Phai.block<3, 3>(3, 15) = I * dt_high;
+        system_user::Phai.block<3, 3>(6, 12) = -I * dt_high;
+    }
+    
+    system_user::Phai.block<3, 3>(0, 6)  = -0.5 * Ra * dt_high * dt_high;
+    system_user::Phai.block<3, 3>(0, 9)  = -0.5 * Rn * dt_high * dt_high;
+    system_user::Phai.block<3, 3>(3, 6)  = -0.5 * Ra * dt_high;
+    system_user::Phai.block<3, 3>(3, 9)  = -0.5 * Rn * dt_high;
+    system_user::Phai.block<3, 3>(3, 12) =  0.5 * Ra * dt_high * dt_high;
+    system_user::Phai.block<3, 3>(6, 6)  = Rwdt.transpose();
+}
+
+Eigen::Vector<double, 6> system_user::getSensorValueWithoutNoise()
+{
     // acceleration alias
     const Eigen::Vector3d & at  = other_true_state.segment(0, 3);
     const Eigen::Vector3d & gt  = xt.segment(15, 3);
@@ -129,63 +203,17 @@ Eigen::Vector<double, 9> system_user::observeWithoutNoise(const Eigen::Vector<do
     // angular velocity
     const Eigen::Vector3d wm_without_noise (other_true_state[3] - xt[12], other_true_state[4] - xt[13], other_true_state[5] - xt[14]);
 
-    Eigen::Vector<double, 9> y_without_noise;
-    y_without_noise << pm_without_noise, am_without_noise, wm_without_noise;
+    Eigen::Vector<double, 6> sensor_value_without_noise;
+    sensor_value_without_noise << am_without_noise, wm_without_noise;
 
-    return y_without_noise;
+    return sensor_value_without_noise;
 }
 
-Eigen::Vector<double, 9> system_user::observe()
+Eigen::Vector<double, 6> system_user::getSensorValue()
 {
-    // observation without noise
-    const Eigen::Vector<double, 9> y_without_noise = observeWithoutNoise(xt);
-
-    // noise 
-    const Eigen::Vector<double, 9> noise (dist_pn(gen_for_pn), dist_pn(gen_for_pn), dist_pn(gen_for_pn),
-                                          dist_an(gen_for_an), dist_an(gen_for_an), dist_an(gen_for_an),
+    Eigen::Vector<double, 6> sensor_value_without_noise = getSensorValueWithoutNoise();
+    const Eigen::Vector<double, 6> noise (dist_an(gen_for_an), dist_an(gen_for_an), dist_an(gen_for_an),
                                           dist_wn(gen_for_wn), dist_wn(gen_for_wn), dist_wn(gen_for_wn));
     
-    // observation with noise
-    Eigen::Vector<double, 9> y;
-    y = y_without_noise + noise;
-    
-    return y;
-}
-
-Eigen::Vector<double, 9> system_user::hx_hat()
-{
-    // it functions as prediction if observeWithoutNoise is adapted to nominal state
-    return observeWithoutNoise(x);
-}
-
-void system_user::updatePhai()
-{
-    // alias 
-    const double & ax = a_nominal[0];
-    const double & ay = a_nominal[1];
-    const double & az = a_nominal[2];
-
-    Eigen::Matrix3d a_cross;
-    a_cross <<  0, -az,  ay,
-                az,  0, -ax,
-               -ay, ax,  0;
-    Eigen::Matrix3d Ra = Rn * a_cross;
-    Eigen::Matrix3d I = Eigen::Matrix3d::Identity();
-
-    // only first time. invariant part.
-    if ((0, 3) != 0) 
-    {
-        Phai.block<3, 3>(0, 3)  = I * dt_low;
-        Phai.block<3, 3>(0, 15) = 0.5 * I * dt_low * dt_low;
-        Phai.block<3, 3>(3, 15) = I * dt_low;
-        Phai.block<3, 3>(6, 12) = -I * dt_low;
-    }
-    
-    Phai.block<3, 3>(0, 6)  = -0.5 * Ra * dt_low * dt_low;
-    Phai.block<3, 3>(0, 9)  = -0.5 * Rn * dt_low * dt_low;
-    Phai.block<3, 3>(3, 6)  = -0.5 * Ra * dt_low;
-    Phai.block<3, 3>(3, 9)  = -0.5 * Rn * dt_low;
-    Phai.block<3, 3>(3, 12) =  0.5 * Ra * dt_low * dt_low;
-
-
+    return sensor_value_without_noise + noise;
 }

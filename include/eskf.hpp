@@ -8,20 +8,19 @@ namespace eskf
 {
     void updateErrorState();
 
-    void updateCovarianceMatrix(Eigen::Matrix<double, 18, 18> & P);
+    void updateCovarianceMatrix();
 
-    Eigen::Matrix<double, 9, 18> jacobH();
+    Eigen::Matrix<double, 6, 18> jacobH();
 
-    Eigen::Matrix<double, 9, 19> jacobhx();
+    Eigen::Matrix<double, 6, 19> jacobhx();
 
     Eigen::Matrix<double, 19, 18> jacobXdx();
 
-    void updateNominal(Eigen::Vector<double, 18> & x, const Eigen::Vector<double, 18> & dx);
+    void updateNominal();
 
     Eigen::Vector4d dthetaTodq(const Eigen::Vector3d & dtheta);
 
-    void initializeErrorState(Eigen::Vector<double, 18>     & dx,
-                              Eigen::Matrix<double, 18, 18> & P);
+    void initializeErrorState();
 }
 
 #endif // ESKF_HPP
