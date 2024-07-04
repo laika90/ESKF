@@ -5,7 +5,7 @@
 
 void eskf::updateErrorState()
 {
-    Eigen::Matrix<double, 18, 9> K;
+    Eigen::Matrix<double, 18, 6> K;
     Eigen::Matrix<double, 6, 18> H;
     Eigen::Vector<double, 6> y;
     Eigen::Matrix<double, 18, 18> I = Eigen::MatrixXd::Identity(18, 18);
