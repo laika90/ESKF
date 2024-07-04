@@ -36,11 +36,14 @@ namespace system_user
     // Rotation Matrix (quaternion to rotation matrix) true state
     extern Eigen::Matrix3d Rt;
 
+    // Rotation Matrix (quaternion to rotation matrix) nominal state
+    extern Eigen::Matrix3d Rn;
+
     // covariance matrix of error state dx
     extern Eigen::Matrix<double, 18, 18> P;
 
     // covariance matrix of observation noise
-    extern Eigen::Matrix<double, 9, 9> V;
+    extern const Eigen::Matrix<double, 9, 9> V;
 
     // dt (high freq & low freq)
     extern const double dt_high;
@@ -80,10 +83,11 @@ namespace system_user
     extern std::normal_distribution<> dist_pn;
 
     void updateTrueState(const double t);
-    void updateRotationMatrix(Eigen::Vector4d & quat);
+    void updateRotationMatrix(Eigen::Vector4d & quat, Eigen::Matrix3d & R); // used for both nominal and true state
     Eigen::Vector<double, 9> observeWithoutNoise(const Eigen::Vector<double, 18> & state);
     Eigen::Vector<double, 9> observe();
     Eigen::Vector<double, 9> hx_hat();
+    void updatePhai();
 }
 
 #endif // SYSTEM_HPP_

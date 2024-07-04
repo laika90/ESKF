@@ -12,6 +12,14 @@ namespace system_user
     const double omega_r = 0.1;
     const double v_aw = 0.01;
     const double v_ww = 0.01;
+    const double v_an = 0.01;
+    const double v_wn = 0.01;
+    const double v_pn = 0.01;
+
+    Eigen::Vector<double, 9> V_vec (v_pn, v_pn, v_pn, v_an, v_an, v_an, v_wn, v_wn, v_wn);
+    Eigen::Matrix<double, 9, 9> V =  V_vec.asDiagonal();
+
+    Eigen::Vector3d a_nominal = Eigen::Vector3d::Zero();
 
     std::random_device rd_for_aw;  
     std::random_device rd_for_ww;  
@@ -38,6 +46,9 @@ namespace system_user
     Eigen::Vector<double, 6> other_true_state (0, 0, 0, 0, 0, 0);
 
     Eigen::Matrix3d Rt = Eigen::Matrix3d::Identity();
+
+    const Eigen::Vector<double, 18> Phai_origin = Eigen::Vector<double, 18>::Ones(18);
+    Eigen::Matrix<double, 18, 18> Phai = Phai_origin.asDiagonal();
 }
 
 void system_user::updateTrueState(const double t)
@@ -83,10 +94,10 @@ void system_user::updateTrueState(const double t)
     
     other_true_state << ax, ay, az, w_x, w_y, w_z;
 
-    updateRotationMatrix(qt_new);
+    updateRotationMatrix(qt_new, Rt);
 }
 
-void system_user::updateRotationMatrix(Eigen::Vector4d & quat)
+void system_user::updateRotationMatrix(Eigen::Vector4d & quat, Eigen::Matrix3d & R)
 {
     // alias
     const double & qw = quat[0];
@@ -94,9 +105,9 @@ void system_user::updateRotationMatrix(Eigen::Vector4d & quat)
     const double & qy = quat[2];
     const double & qz = quat[3];
 
-    Rt << qw*qw + qx*qx - qy*qy - qz*qz, 2*(qx*qy - qw*qz),             2*(qx*qz + qw*qy),
-          2*(qx*qy + qz*qw),             qw*qw - qx*qx + qy*qy - qz*qz, 2*(qy*qz - qx*qw),
-          2*(qx*qz - qw*qy),             2*(qy*qz + qx*qw),             qw*qw - qx*qx - qy*qy + qz*qz;
+    R << qw*qw + qx*qx - qy*qy - qz*qz, 2*(qx*qy - qw*qz),             2*(qx*qz + qw*qy),
+         2*(qx*qy + qz*qw),             qw*qw - qx*qx + qy*qy - qz*qz, 2*(qy*qz - qx*qw),
+         2*(qx*qz - qw*qy),             2*(qy*qz + qx*qw),             qw*qw - qx*qx - qy*qy + qz*qz;
 }
 
 Eigen::Vector<double, 9> system_user::observeWithoutNoise(const Eigen::Vector<double, 18> & state)
@@ -145,4 +156,36 @@ Eigen::Vector<double, 9> system_user::hx_hat()
 {
     // it functions as prediction if observeWithoutNoise is adapted to nominal state
     return observeWithoutNoise(x);
+}
+
+void system_user::updatePhai()
+{
+    // alias 
+    const double & ax = a_nominal[0];
+    const double & ay = a_nominal[1];
+    const double & az = a_nominal[2];
+
+    Eigen::Matrix3d a_cross;
+    a_cross <<  0, -az,  ay,
+                az,  0, -ax,
+               -ay, ax,  0;
+    Eigen::Matrix3d Ra = Rn * a_cross;
+    Eigen::Matrix3d I = Eigen::Matrix3d::Identity();
+
+    // only first time. invariant part.
+    if ((0, 3) != 0) 
+    {
+        Phai.block<3, 3>(0, 3)  = I * dt_low;
+        Phai.block<3, 3>(0, 15) = 0.5 * I * dt_low * dt_low;
+        Phai.block<3, 3>(3, 15) = I * dt_low;
+        Phai.block<3, 3>(6, 12) = -I * dt_low;
+    }
+    
+    Phai.block<3, 3>(0, 6)  = -0.5 * Ra * dt_low * dt_low;
+    Phai.block<3, 3>(0, 9)  = -0.5 * Rn * dt_low * dt_low;
+    Phai.block<3, 3>(3, 6)  = -0.5 * Ra * dt_low;
+    Phai.block<3, 3>(3, 9)  = -0.5 * Rn * dt_low;
+    Phai.block<3, 3>(3, 12) =  0.5 * Ra * dt_low * dt_low;
+
+
 }
