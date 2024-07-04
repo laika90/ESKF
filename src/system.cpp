@@ -70,9 +70,9 @@ void system_user::updateTrueState(const double t)
     const double wby_new = xt[13] + dist_ww(gen_for_ww) * dt_high;
     const double wbz_new = xt[14] + dist_ww(gen_for_ww) * dt_high;
 
-    const double ax = (v_x - xt[3]) / dt_high;
-    const double ay = (v_y - xt[4]) / dt_high;
-    const double az = (v_z - xt[5]) / dt_high;
+    const double ax = -   omega_p*omega_p*std::sin(omega_p*t);
+    const double ay = - 8*omega_p*omega_p*std::sin(omega_p*t);
+    const double az = -27*omega_p*omega_p*std::sin(omega_p*t);
 
     xt << p_x, p_y, p_z, 
           v_x, v_y, v_z,

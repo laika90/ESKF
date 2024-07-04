@@ -10,7 +10,7 @@ namespace system_user
 
     // transition matrix for state
     extern Eigen::Matrix<double, 18, 18> A;
-    extern Eigen::Matrix<double, 18, 18> phai;
+    extern Eigen::Matrix<double, 18, 18> Phai;
 
     // transition matrix for error state
     extern Eigen::Matrix<double, 18, 18> Fx;
@@ -27,11 +27,20 @@ namespace system_user
     // error state
     extern Eigen::Vector<double, 18> dx;
 
+    // acceleration nominal
+    extern Eigen::Vector3d a_nominal;
+
     // to hold other states needed to consider obsercvation (only for simulation)
     extern Eigen::Vector<double, 6> other_true_state;
 
     // Rotation Matrix (quaternion to rotation matrix) true state
     extern Eigen::Matrix3d Rt;
+
+    // covariance matrix of error state dx
+    extern Eigen::Matrix<double, 18, 18> P;
+
+    // covariance matrix of observation noise
+    extern Eigen::Matrix<double, 9, 9> V;
 
     // dt (high freq & low freq)
     extern const double dt_high;

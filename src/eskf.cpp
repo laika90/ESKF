@@ -2,52 +2,92 @@
 #include "../include/eskf.hpp"
 #include "../include/system.hpp"
 
-void eskf::updateErrorState(Eigen::Vector<double, 18>     & x,
-                            Eigen::Vector<double, 18>     & dx,
-                            Eigen::Matrix<double, 18, 18> & P,
-                            Eigen::Matrix<double, 9, 9> & V)
+void eskf::updateErrorState()
 {
     Eigen::Matrix<double, 18, 9> K;
     Eigen::Matrix<double, 9, 18> H;
     Eigen::Vector<double, 9> y;
     Eigen::Matrix<double, 18, 18> I = Eigen::MatrixXd::Identity(18, 18);
 
-    y = system_user::observe(x);
-    H = jacobH(x);
-    K = P * H.transpose() * (H*P*H.transpose() + V);
-    dx = K * (y - system_user::hx_hat()); 
-    P = (I - K*H) * P;
+    y = system_user::observe();
+    H = jacobH();
+    K = system_user::P * H.transpose() * (H*system_user::P*H.transpose() + system_user::V);
+    system_user::dx = K * (y - system_user::hx_hat()); 
+    system_user::P  = (I - K*H) * system_user::P;
 
     
 }
 
 void eskf::updateCovarianceMatrix(Eigen::Matrix<double, 18, 18> & P)
 {
-    P = s::Fx * P * s::Fx.transpose() + s::Qi;
+    P = system_user::Phai * system_user::P * system_user::Phai.transpose() + system_user::Qi;
 }
 
-Eigen::Matrix<double, 9, 18> eskf::jacobH(const Eigen::Vector<double, 18> & x)
+Eigen::Matrix<double, 9, 18> eskf::jacobH()
 {
     Eigen::Matrix<double, 9, 19> hx;
     Eigen::Matrix<double, 19, 18> Xdx;
 
-    hx  = jacobhx(x);
-    Xdx = jacobXdx(x);
+    hx  = jacobhx();
+    Xdx = jacobXdx();
     return hx*Xdx;
 }
 
-Eigen::Matrix<double, 9, 19> eskf::jacobhx(const Eigen::Vector<double, 18> & x)
+Eigen::Matrix<double, 9, 19> eskf::jacobhx()
 {
-    Eigen::Matrix<double, 9, 19> hx;
+    // alias
+    const double & qx  = system_user::x[6];
+    const double & qy  = system_user::x[7];
+    const double & qz  = system_user::x[8];
+    const double   qw  = std::sqrt(1 - (qx*qx + qy*qy + qz*qz));
+    const double & abx = system_user::x[9];
+    const double & aby = system_user::x[10];
+    const double & abz = system_user::x[11];
+    const double & g   = system_user::x[17];
+    const double & ax  = system_user::a_nominal[0];
+    const double & ay  = system_user::a_nominal[1];
+    const double & az  = system_user::a_nominal[2];
+
+    Eigen::Matrix<double, 9, 19> hx = Eigen::Matrix<double, 9, 19>::Zero(9, 19);
+
+    hx(0, 0)  =  1;
+    hx(1, 1)  =  1;
+    hx(2, 2)  =  1;
+
+    hx(3, 6)  =  2*qw*ax + 2*qz*ay - 2*qy*(az-g); // qw
+    hx(3, 7)  =  2*qx*ax + 2*qy*ay + 2*qz*(az-g); // qx
+    hx(3, 8)  = -2*qy*ax + 2*qx*ay - 2*qw*(az-g); // qy
+    hx(3, 9)  = -2*qz*ax + 2*qw*ay + 2*qx*(az-g); // qz
+    hx(3, 10) =  1;
+    hx(3, 18) = -2*(qx*qz - qw*qy);  
+
+    hx(4, 6)  = -2*qz*ax + 2*qw*ay + 2*qx*(az-g); // qw
+    hx(4, 7)  =  2*qy*ax - 2*qx*ay + 2*qw*(az-g); // qx
+    hx(4, 8)  =  2*qx*ax + 2*qy*ay + 2*qz*(az-g); // qy
+    hx(4, 9)  = -2*qw*ax - 2*qz*ay + 2*qy*(az-g); // qz
+    hx(4, 11) =  1;
+    hx(4, 18) = -2*(qy*qz + qw*qx);
+
+    hx(5, 6)  =  2*qy*ax - 2*qx*ay - 2*qw*(az-g); // qw
+    hx(5, 7)  =  2*qz*ax - 2*qw*ay - 2*qx*(az-g); // qx
+    hx(5, 8)  =  2*qw*ax + 2*qz*ay - 2*qy*(az-g); // qy
+    hx(5, 9)  =  2*qx*ax + 2*qy*ay + 2*qz*(az-g); // qz
+    hx(5, 12) =  1;
+    hx(5, 18) = -(qw*qw - qx*qx - qy*qy + qz*qz);
+
+    hx(6, 13) = -1;
+    hx(7, 14) = -1;
+    hx(8, 15) = -1;
+
     return hx;
 }
 
-Eigen::Matrix<double, 19, 18> eskf::jacobXdx(const Eigen::Vector<double, 18> & x)
+Eigen::Matrix<double, 19, 18> eskf::jacobXdx()
 {
     // alias
-    const double & qx = x[6];
-    const double & qy = x[7];
-    const double & qz = x[8];
+    const double & qx = system_user::x[6];
+    const double & qy = system_user::x[7];
+    const double & qz = system_user::x[8];
     const double   qw = std::sqrt(1 - (qx*qx + qy*qy + qz*qz));
 
     Eigen::Matrix<double, 19, 18> Xdx = Eigen::Matrix<double, 19, 18>::Zero(19, 18);

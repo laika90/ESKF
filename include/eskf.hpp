@@ -6,18 +6,15 @@
 
 namespace eskf 
 {
-    void updateErrorState(Eigen::Vector<double, 18>     & x,
-                          Eigen::Vector<double, 18>     & dx,
-                          Eigen::Matrix<double, 18, 18> & P,
-                          Eigen::Matrix<double, 9, 9> & V);
+    void updateErrorState();
 
     void updateCovarianceMatrix(Eigen::Matrix<double, 18, 18> & P);
 
-    Eigen::Matrix<double, 9, 18> jacobH(const Eigen::Vector<double, 18> & x);
+    Eigen::Matrix<double, 9, 18> jacobH();
 
-    Eigen::Matrix<double, 9, 19> jacobhx(const Eigen::Vector<double, 18> & x);
+    Eigen::Matrix<double, 9, 19> jacobhx();
 
-    Eigen::Matrix<double, 19, 18> jacobXdx(const Eigen::Vector<double, 18> & x);
+    Eigen::Matrix<double, 19, 18> jacobXdx();
 
     void updateNominal(Eigen::Vector<double, 18> & x, const Eigen::Vector<double, 18> & dx);
 
