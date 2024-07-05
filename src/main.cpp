@@ -9,7 +9,7 @@ int main()
 {
     double t = 0;
     int counter = 0;
-    int limit = 10;
+    double limit = 0.1;
 
     while (true)
     {
@@ -27,11 +27,14 @@ int main()
             eskf::updateNominal();
             eskf::initializeErrorState();
             counter = 0;
+            std::cout << "----- observation ------" << std::endl;
         }
+        std::cout << "###############################" << std::endl;
+        std::cout << system_user::x << std::endl;
+        std::cout << "###############################" << std::endl;
 
         if (t > limit) { break; }
-
     }
 
-    std::cout << system_user::x << std::endl;
+    std::cout << system_user::xt << std::endl;
 }

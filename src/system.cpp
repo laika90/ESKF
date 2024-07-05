@@ -65,8 +65,8 @@ void system_user::updateTrueState(const double t)
     const double p_y = 2*std::sin(2*omega_p*t);
     const double p_z = 3*std::sin(3*omega_p*t);
     const double v_x =   omega_p*std::cos(  omega_p*t);
-    const double v_y = 2*omega_p*std::cos(2*omega_p*t);
-    const double v_z = 3*omega_p*std::cos(3*omega_p*t);
+    const double v_y = 4*omega_p*std::cos(2*omega_p*t);
+    const double v_z = 9*omega_p*std::cos(3*omega_p*t);
     const double w_x =   std::sin(omega_r*t);
     const double w_y = 2*std::sin(omega_r*t);
     const double w_z = 3*std::sin(omega_r*t);
@@ -223,7 +223,7 @@ void system_user::oneStep(const Eigen::Vector<double, 6> & sensor_value)
 {
     // alias
     const Eigen::Vector3d & am = sensor_value.segment(0, 3);
-    const Eigen::Vector3d & wm = sensor_value.segment(0, 3);
+    const Eigen::Vector3d & wm = sensor_value.segment(3, 3);
     const Eigen::Vector3d & p  = x.segment(0, 3);
     const Eigen::Vector3d & v  = x.segment(3, 3);
     const Eigen::Vector4d   q    (std::sqrt(1 - x.segment(6, 3).norm()), x[6], x[7], x[8]);
@@ -236,7 +236,7 @@ void system_user::oneStep(const Eigen::Vector<double, 6> & sensor_value)
     const Eigen::Vector3d v_new = v + (Rn*(am - ab) + g) * dt_high; 
 
     const Eigen::Vector4d dq    = thetaToq((wm - wb)*dt_high);
-    Eigen::Vector4d q_new = quatMultiply(q, dq);
+          Eigen::Vector4d q_new = quatMultiply(q, dq);
     q_new.normalize();
 
     x << p_new, v_new, q_new.segment(1, 3), ab, wb, g;

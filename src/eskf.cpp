@@ -2,6 +2,7 @@
 #include "../include/eskf.hpp"
 #include "../include/system.hpp"
 #include "../include/common.hpp"
+#include <iostream>
 
 void eskf::updateErrorState()
 {
@@ -12,6 +13,7 @@ void eskf::updateErrorState()
 
     y = system_user::observe();
     H = jacobH();
+    std::cout << H << std::endl;
     K = system_user::P * H.transpose() * (H*system_user::P*H.transpose() + system_user::V);
     system_user::dx = K * (y - system_user::hx_hat()); 
     system_user::P  = (I - K*H) * system_user::P;
@@ -80,8 +82,6 @@ void eskf::updateNominal()
     system_user::x[7] = q_new[2];
     system_user::x[8] = q_new[3];
 }
-
-
 
 void eskf::initializeErrorState()
 {
