@@ -9,11 +9,7 @@ namespace system_user
     // #define OBSERVE_LENGTH 9
 
     // transition matrix for state
-    extern Eigen::Matrix<double, 18, 18> A;
     extern Eigen::Matrix<double, 18, 18> Phai;
-
-    // transition matrix for error state
-    extern Eigen::Matrix<double, 18, 18> Fx;
     
     // variance of impluse
     extern Eigen::Matrix<double, 18, 18> Qi;
@@ -43,7 +39,7 @@ namespace system_user
     extern Eigen::Matrix<double, 18, 18> P;
 
     // covariance matrix of observation noise
-    extern const Eigen::Matrix<double, 9, 9> V;
+    extern Eigen::Matrix<double, 6, 6> V;
 
     // dt (high freq & low freq)
     extern const double dt_high;
@@ -88,13 +84,14 @@ namespace system_user
     extern std::normal_distribution<> dist_wn;
 
     void updateTrueState(const double t);
-    void updateRotationMatrix(Eigen::Vector4d & quat, Eigen::Matrix3d & R); // used for both nominal and true state
+    void updateRotationMatrix(const Eigen::Vector4d & quat, Eigen::Matrix3d & R); // used for both nominal and true state
     Eigen::Vector<double, 6> observeWithoutNoise(const Eigen::Vector<double, 18> & state);
     Eigen::Vector<double, 6> observe();
     Eigen::Vector<double, 6> hx_hat();
     void updatePhai();
     Eigen::Vector<double, 6> getSensorValueWithoutNoise();
     Eigen::Vector<double, 6> getSensorValue();
+    void oneStep(const Eigen::Vector<double, 6> & sensor_value);
 }
 
 #endif // SYSTEM_HPP_

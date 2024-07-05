@@ -51,9 +51,12 @@ namespace system_user
     Eigen::Vector<double, 6> other_true_state    (0, 0, 0, 0, 0, 0);
 
     Eigen::Matrix3d Rt = Eigen::Matrix3d::Identity();
+    Eigen::Matrix3d Rn = Eigen::Matrix3d::Identity();
 
-    const Eigen::Vector<double, 18> Phai_origin = Eigen::Vector<double, 18>::Ones(18);
-    Eigen::Matrix<double, 18, 18> Phai = Phai_origin.asDiagonal();
+    Eigen::Matrix<double, 18, 18> Phai = Eigen::Matrix<double, 18, 18>::Identity();
+
+    Eigen::Matrix<double, 18, 18> Qi = Eigen::Matrix<double, 18, 18>::Identity() * 0.01;
+    Eigen::Matrix<double, 18, 18> P  = Eigen::Matrix<double, 18, 18>::Identity() * 0.1;
 }
 
 void system_user::updateTrueState(const double t)
@@ -76,8 +79,7 @@ void system_user::updateTrueState(const double t)
     qt << std::sqrt(1 - xt.segment(6, 3).norm()), xt.segment(6, 3);
     q_dot = quatMultiply(qt, w_v) * 0.5;
     qt_new = qt + q_dot * dt_high;
-    std::cout << q_dot << std::endl;
-    //qt_new.normalize();
+    qt_new.normalize();
 
     const double abx_new = xt[9]  + dist_aw(gen_for_aw) * dt_high;
     const double aby_new = xt[10] + dist_aw(gen_for_aw) * dt_high;
@@ -97,12 +99,12 @@ void system_user::updateTrueState(const double t)
           wbx_new, wby_new, wbz_new,
           xt[15], xt[16], xt[17];
     
+    // update other true state and rotation matrix
     other_true_state << ax, ay, az, w_x, w_y, w_z;
-
     updateRotationMatrix(qt_new, Rt);
 }
 
-void system_user::updateRotationMatrix(Eigen::Vector4d & quat, Eigen::Matrix3d & R)
+void system_user::updateRotationMatrix(const Eigen::Vector4d & quat, Eigen::Matrix3d & R)
 {
     // alias
     const double & qw = quat[0];
@@ -138,8 +140,7 @@ Eigen::Vector<double, 6> system_user::observe()
 
     // noise 
     const Eigen::Vector<double, 6> noise (dist_pn(gen_for_pn), dist_pn(gen_for_pn), dist_pn(gen_for_pn),
-                                          dist_an(gen_for_an), dist_an(gen_for_an), dist_an(gen_for_an),
-                                          dist_wn(gen_for_wn), dist_wn(gen_for_wn), dist_wn(gen_for_wn));
+                                          dist_vn(gen_for_vn), dist_vn(gen_for_vn), dist_vn(gen_for_vn));
     
     // observation with noise
     Eigen::Vector<double, 6> y;
@@ -216,4 +217,28 @@ Eigen::Vector<double, 6> system_user::getSensorValue()
                                           dist_wn(gen_for_wn), dist_wn(gen_for_wn), dist_wn(gen_for_wn));
     
     return sensor_value_without_noise + noise;
+}
+
+void system_user::oneStep(const Eigen::Vector<double, 6> & sensor_value)
+{
+    // alias
+    const Eigen::Vector3d & am = sensor_value.segment(0, 3);
+    const Eigen::Vector3d & wm = sensor_value.segment(0, 3);
+    const Eigen::Vector3d & p  = x.segment(0, 3);
+    const Eigen::Vector3d & v  = x.segment(3, 3);
+    const Eigen::Vector4d   q    (std::sqrt(1 - x.segment(6, 3).norm()), x[6], x[7], x[8]);
+    const Eigen::Vector3d & ab = x.segment(9, 3);
+    const Eigen::Vector3d & wb = x.segment(12, 3);
+    const Eigen::Vector3d & g  = x.segment(15, 3);
+
+    // update
+    const Eigen::Vector3d p_new = p + v*dt_high + 0.5*(Rn*(am - ab) + g)*dt_high*dt_high;
+    const Eigen::Vector3d v_new = v + (Rn*(am - ab) + g) * dt_high; 
+
+    const Eigen::Vector4d dq    = thetaToq((wm - wb)*dt_high);
+    Eigen::Vector4d q_new = quatMultiply(q, dq);
+    q_new.normalize();
+
+    x << p_new, v_new, q_new.segment(1, 3), ab, wb, g;
+    updateRotationMatrix(q_new, Rn);
 }

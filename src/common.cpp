@@ -36,3 +36,4 @@ Eigen::Vector4d thetaToq(const Eigen::Vector3d & theta)
 
     return q; 
 }
+
