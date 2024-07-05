@@ -1,9 +1,9 @@
 #include <iostream>
 #include <cmath>
 #include <Eigen/Core>
-#include "../include/system.hpp"
-#include "../include/eskf.hpp"
-#include "../include/common.hpp"
+#include "system.hpp"
+#include "eskf.hpp"
+#include "common.hpp"
 
 int main()
 {

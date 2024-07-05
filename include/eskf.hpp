@@ -18,8 +18,6 @@ namespace eskf
 
     void updateNominal();
 
-    Eigen::Vector4d dthetaTodq(const Eigen::Vector3d & dtheta);
-
     void initializeErrorState();
 }
 

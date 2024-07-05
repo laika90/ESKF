@@ -1,7 +1,7 @@
 #include <cmath>
-#include "../include/eskf.hpp"
-#include "../include/system.hpp"
-#include "../include/common.hpp"
+#include "eskf.hpp"
+#include "system.hpp"
+#include "common.hpp"
 #include <iostream>
 
 void eskf::updateErrorState()

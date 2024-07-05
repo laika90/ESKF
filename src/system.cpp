@@ -1,5 +1,5 @@
-#include "../include/system.hpp"
-#include "../include/common.hpp"
+#include "system.hpp"
+#include "common.hpp"
 #include <cmath>
 #include <iostream>
 
@@ -172,9 +172,10 @@ void system_user::updatePhai()
 
     Eigen::Matrix3d Rwdt;
     Eigen::Vector4d wdt_quat = thetaToq(w_nominal*dt_high);
+    updateRotationMatrix(wdt_quat, Rwdt);
 
     // only first time. invariant part.
-    if ((0, 3) != 0) 
+    if (system_user::Phai(0, 3) != 0) 
     {
         system_user::Phai.block<3, 3>(0, 3)  = I * dt_high;
         system_user::Phai.block<3, 3>(0, 15) = 0.5 * I * dt_high * dt_high;

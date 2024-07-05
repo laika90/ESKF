@@ -1,4 +1,4 @@
-#include "../include/common.hpp"
+#include "common.hpp"
 #include <cmath>
 
 Eigen::Vector4d quatMultiply(const Eigen::Vector4d & p, const Eigen::Vector4d & q)
