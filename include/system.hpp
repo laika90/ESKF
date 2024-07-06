@@ -91,7 +91,7 @@ namespace system_user
     void updatePhai();
     Eigen::Vector<double, 6> getSensorValueWithoutNoise();
     Eigen::Vector<double, 6> getSensorValue();
-    void oneStep(const Eigen::Vector<double, 6> & sensor_value);
+    void oneStep(const Eigen::Vector<double, 6> & sensor_value, const double t);
 }
 
 #endif // SYSTEM_HPP_

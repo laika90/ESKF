@@ -56,29 +56,32 @@ namespace system_user
     Eigen::Matrix<double, 18, 18> Phai = Eigen::Matrix<double, 18, 18>::Identity();
 
     Eigen::Matrix<double, 18, 18> Qi = Eigen::Matrix<double, 18, 18>::Identity() * 0.01;
-    Eigen::Matrix<double, 18, 18> P  = Eigen::Matrix<double, 18, 18>::Identity() * 0.1;
+    Eigen::Matrix<double, 18, 18> P  = Eigen::Matrix<double, 18, 18>::Identity() * 0.01;
 }
 
 void system_user::updateTrueState(const double t)
 {
-    const double p_x =   std::sin(  omega_p*t);
-    const double p_y = 2*std::sin(2*omega_p*t);
-    const double p_z = 3*std::sin(3*omega_p*t);
-    const double v_x =   omega_p*std::cos(  omega_p*t);
-    const double v_y = 4*omega_p*std::cos(2*omega_p*t);
-    const double v_z = 9*omega_p*std::cos(3*omega_p*t);
+    const double p_x =   std::sin(  omega_p*t) + 0.5*xt[15]*t*t;
+    const double p_y = 2*std::sin(2*omega_p*t) + 0.5*xt[16]*t*t;
+    const double p_z = 3*std::sin(3*omega_p*t) + 0.5*xt[17]*t*t;
+    const double v_x =   omega_p*std::cos(  omega_p*t) + xt[15]*t;
+    const double v_y = 4*omega_p*std::cos(2*omega_p*t) + xt[16]*t;
+    const double v_z = 9*omega_p*std::cos(3*omega_p*t) + xt[17]*t;
     const double w_x =   std::sin(omega_r*t);
     const double w_y = 2*std::sin(omega_r*t);
     const double w_z = 3*std::sin(omega_r*t);
 
     Eigen::Vector4d qt;
     Eigen::Vector4d w_v(0, w_x, w_y, w_z);
+    Eigen::Vector3d wt (w_x, w_y, w_z);
     Eigen::Vector4d q_dot;
     Eigen::Vector4d qt_new;
 
     qt << std::sqrt(1 - xt.segment(6, 3).norm()), xt.segment(6, 3);
-    q_dot = quatMultiply(qt, w_v) * 0.5;
-    qt_new = qt + q_dot * dt_high;
+    // q_dot = quatMultiply(qt, w_v) * 0.5;
+    // qt_new = qt + q_dot * dt_high;
+    q_dot = thetaToq(wt*dt_high);
+    qt_new = quatMultiply(qt, q_dot);
     qt_new.normalize();
 
     const double abx_new = xt[9]  + dist_aw(gen_for_aw) * dt_high;
@@ -88,9 +91,9 @@ void system_user::updateTrueState(const double t)
     const double wby_new = xt[13] + dist_ww(gen_for_ww) * dt_high;
     const double wbz_new = xt[14] + dist_ww(gen_for_ww) * dt_high;
 
-    const double ax = -   omega_p*omega_p*std::sin(omega_p*t);
-    const double ay = - 8*omega_p*omega_p*std::sin(omega_p*t);
-    const double az = -27*omega_p*omega_p*std::sin(omega_p*t);
+    const double ax = -   omega_p*omega_p*std::sin(  omega_p*t) + xt[15];
+    const double ay = - 8*omega_p*omega_p*std::sin(2*omega_p*t) + xt[16];
+    const double az = -27*omega_p*omega_p*std::sin(3*omega_p*t) + xt[17];
 
     xt << p_x, p_y, p_z, 
           v_x, v_y, v_z,
@@ -122,10 +125,10 @@ Eigen::Vector<double, 6> system_user::observeWithoutNoise(const Eigen::Vector<do
     // this function can be used in both true state and nominal state
 
     // position 
-    const Eigen::Vector3d pm_without_noise (xt[0], xt[1], xt[2]);
+    const Eigen::Vector3d pm_without_noise (state[0], state[1], state[2]);
 
     // velocity
-    const Eigen::Vector3d vm_without_noise (xt[3], xt[4], xt[5]);
+    const Eigen::Vector3d vm_without_noise (state[3], state[4], state[5]);
 
     Eigen::Vector<double, 6> y_without_noise;
     y_without_noise << pm_without_noise, vm_without_noise;
@@ -220,7 +223,7 @@ Eigen::Vector<double, 6> system_user::getSensorValue()
     return sensor_value_without_noise + noise;
 }
 
-void system_user::oneStep(const Eigen::Vector<double, 6> & sensor_value)
+void system_user::oneStep(const Eigen::Vector<double, 6> & sensor_value, const double t)
 {
     // alias
     const Eigen::Vector3d & am = sensor_value.segment(0, 3);
@@ -234,12 +237,15 @@ void system_user::oneStep(const Eigen::Vector<double, 6> & sensor_value)
 
     // update
     const Eigen::Vector3d p_new = p + v*dt_high + 0.5*(Rn*(am - ab) + g)*dt_high*dt_high;
-    const Eigen::Vector3d v_new = v + (Rn*(am - ab) + g) * dt_high; 
+    Eigen::Vector3d v_new = v + (Rn*(am - ab) + g) * dt_high; 
+    if (t == 0) { v_new << omega_p*std::cos(omega_p*t) + x[15]*t, 4*omega_p*std::cos(2*omega_p*t) + x[16]*t, 9*omega_p*std::cos(3*omega_p*t) + x[17]*t; }
 
     const Eigen::Vector4d dq    = thetaToq((wm - wb)*dt_high);
           Eigen::Vector4d q_new = quatMultiply(q, dq);
     q_new.normalize();
 
     x << p_new, v_new, q_new.segment(1, 3), ab, wb, g;
+    other_nominal_state << am-ab, wm-wb;
     updateRotationMatrix(q_new, Rn);
+    updatePhai();
 }

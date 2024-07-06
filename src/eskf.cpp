@@ -13,7 +13,6 @@ void eskf::updateErrorState()
 
     y = system_user::observe();
     H = jacobH();
-    std::cout << H << std::endl;
     K = system_user::P * H.transpose() * (H*system_user::P*H.transpose() + system_user::V);
     system_user::dx = K * (y - system_user::hx_hat()); 
     system_user::P  = (I - K*H) * system_user::P;
