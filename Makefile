@@ -1,4 +1,4 @@
-.PHONY: all clean re run
+.PHONY: all clean re run rerun
 
 CC     = g++
 CFLAGS = -Wall
@@ -25,3 +25,5 @@ re: clean all
 
 run:
 	./build/main.exe
+
+rerun: re run

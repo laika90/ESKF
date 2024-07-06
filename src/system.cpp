@@ -1,7 +1,6 @@
 #include "system.hpp"
 #include "common.hpp"
 #include <cmath>
-#include <iostream>
 
 namespace system_user
 {
@@ -10,12 +9,12 @@ namespace system_user
     const double g = -9.8;
     const double omega_p = 0.1; 
     const double omega_r = 0.1;
-    const double v_aw = 0.01;
-    const double v_ww = 0.01;
-    const double v_pn = 0.01;
-    const double v_vn = 0.01;
-    const double v_an = 0.01;
-    const double v_wn = 0.01;
+    const double v_aw = 0.1;
+    const double v_ww = 0.1;
+    const double v_pn = 0.1;
+    const double v_vn = 0.1;
+    const double v_an = 0.1;
+    const double v_wn = 0.1;
 
     Eigen::Vector<double, 6> V_vec (v_pn, v_pn, v_pn, v_vn, v_vn, v_vn);
     Eigen::Matrix<double, 6, 6> V =  V_vec.asDiagonal();

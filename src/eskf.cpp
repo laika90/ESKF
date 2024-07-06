@@ -2,7 +2,6 @@
 #include "eskf.hpp"
 #include "system.hpp"
 #include "common.hpp"
-#include <iostream>
 
 void eskf::updateErrorState()
 {
