@@ -1,4 +1,5 @@
 #include <cmath>
+#include <Eigen/LU>
 #include "eskf.hpp"
 #include "system.hpp"
 #include "common.hpp"
@@ -12,7 +13,7 @@ void eskf::updateErrorState()
 
     y = system_user::observe();
     H = jacobH();
-    K = system_user::P * H.transpose() * (H*system_user::P*H.transpose() + system_user::V);
+    K = system_user::P * H.transpose() * (H*system_user::P*H.transpose() + system_user::V).inverse();
     system_user::dx = K * (y - system_user::hx_hat()); 
     system_user::P  = (I - K*H) * system_user::P;
 }
